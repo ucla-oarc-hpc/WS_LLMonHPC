@@ -1,0 +1,53 @@
+/*-- scss:rules --*/
+
+body {
+  position: relative;
+  background-color: #f0f0f0;
+  color: #333;
+  font-family: 'Helvetica, Arial, sans-serif'; /* Setting a readable font family */
+  line-height: 1.5; /* Adjusting line height for better readability */
+}
+
+body::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4.5%;
+  height: 100%;
+  background: radial-gradient(circle, #6AD1E3 0%, #21A364 50%, #1C6D72 100%);
+  z-index: 0;
+}
+
+body::after {
+  content: '';
+  position: absolute;
+  left: 40px;
+  right: 0;
+  bottom: 35px;
+  height: 4px;
+  background: #555;
+  z-index: 1;
+}
+
+h2 {
+  font-size: 1.5em; /* Making the heading size larger for better visibility */
+
+  &::after {
+    content: '';
+    display: block;
+    margin-top: 0.5em;
+    margin-left: 0;
+    width: 100%;
+    height: 8px;
+    background: #333;
+  }
+}
+
+a {
+  color: #0066cc; /* Setting a distinct color for links */
+  
+  &:focus {
+    outline: 2px solid #333; /* Enhancing focus styles for better accessibility */
+  }
+}
