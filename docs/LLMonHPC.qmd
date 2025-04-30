@@ -97,10 +97,10 @@ Source code: `WS_LLMonHPC.qmd`
 
 ## 🤖 LLM Fundamentals
 
-::: {style="font-size: 0.50em" }
+::: {style="font-size: 0.60em" }
 
 :::: {.columns}
-::: {.column width="35%"}
+::: {.column width="50%"}
 
 **What are Large Language Models?**
 
@@ -111,175 +111,24 @@ Source code: `WS_LLMonHPC.qmd`
   - Question answering
   - Summarization
   - Code generation
+  - Interact with data
+
+:::
+::: {.column width="50%"}
 
 **Why run LLMs on HPC?**
 
-- 🔒 **Data privacy** - Keep data local on Hoffman2
-- 💰 **Cost efficiency** - No API fees
-- ⚙️ **Customization** - Fine-tune for specific domains
-- 🔍 **Research control** - Adjust parameters, test variations
-
-:::
-::: {.column width="65%"}
-
-```{r llm_flow_with_examples, echo=FALSE, message=FALSE}
-library(ggplot2)
-library(dplyr)
-
-# 1) define your main boxes
-boxes <- tibble(
-  id    = c("input", "tokenize", "model", "output"),
-  xmin  = c( 0,     2.5,      5,      7.5),
-  xmax  = c( 2,     4.5,      7,      9.5),
-  ymin  = c( 1,     1,        1,      1),
-  ymax  = c( 2.8,   2.8,      2.8,    2.8),
-  label = c("Input text", "Tokenization", "Model/\nProcessing", "Output text"),
-  fill  = c("#A3D5FF","#FFD5A3","#D3A3FF","#A3FFC3")
-)
-
-# 2) example annotations for each box
-examples <- boxes %>%
-  mutate(
-    # x,y for the example text
-    x      = (xmin + xmax)/2,
-    y      = ymin + 0.4,
-    example = c(
-      "\"The cat went into...\"",
-      "['The','cat','went']\n[1335, 625, 1821]",
-      "[0.12, -0.33, 0.92, … ]",
-      "\"... 'the box'\""
-    )
-  )
-
-# 3) arrows between boxes
-arrows <- tibble(
-  x      = c(2,    4.5,   7),
-  xend   = c(2.5,  5,     7.5),
-  y      = c(1.9,  1.9,   1.9),
-  yend   = c(1.9,  1.9,   1.9)
-)
-
-# 4) assemble plot
-ggplot() +
-  # main flowchart boxes
-  geom_rect(data=boxes,
-            aes(xmin=xmin, xmax=xmax, ymin=ymin, ymax=ymax, fill=fill),
-            color="gray20", size=0.5, radius=unit(4, "pt")) +
-  # main labels
-  geom_text(data=boxes,
-            aes(x=(xmin+xmax)/2, y=ymax - 0.3, label=label),
-            color="gray20", size=4, lineheight=1.2) +
-  # example text
-  geom_text(data=examples,
-            aes(x=x, y=y, label=example),
-            color="gray20", size=3, lineheight=1.1) +
-  # arrows
-  geom_segment(data=arrows,
-               aes(x=x, xend=xend, y=y, yend=yend),
-               arrow=arrow(length=unit(0.2,"cm"), type="closed"),
-               color="gray20", size=0.7) +
-  # styling
-  scale_fill_identity() +
-  coord_fixed(xlim=c(0,10), ylim=c(0.8,3.5), expand=FALSE) +
-  theme_void()
-
-```
+- 🔒 **Data privacy** - Keep sensitive data on Hoffman2
+  - Generate and analyze data locally 
+- ⚙️ **Customization** - Control over model implementation
+  - Run specialized models for research domains
+  - Fine-tune models on your own datasets
+- 🔍 **Research control** - Full experimental flexibility
+  - Adjust parameters, compare variations, ensure reproducibility
 
 :::
 ::::
 :::
-
-## test
-
-```{r llm_nn_diagram, echo=FALSE, message=FALSE, warning=FALSE}
-library(ggplot2)
-library(ggforce)
-library(dplyr)
-
-# 1) Define the layered nodes
-input      <- tibble(x=0,   y=0,    label = "\"The cat went into...\"")
-tokens     <- tibble(x=1,   y=seq(2,-1,length.out=4),
-                     label = c("The","cat","went","into"))
-hidden     <- tibble(x=2,   y=seq(2,-2,length.out=5))  # hidden neurons have no labels
-tokens_out <- tibble(x=3,   y=seq(1,-1,length.out=3),
-                     label = c("the","box","!"))
-output     <- tibble(x=4,   y=0,    label = "\"The box!\"")
-
-nodes <- bind_rows(
-  input      %>% mutate(layer="input"),
-  tokens     %>% mutate(layer="token"),
-  hidden     %>% mutate(layer="hidden"),
-  tokens_out %>% mutate(layer="token_out"),
-  output     %>% mutate(layer="output")
-) %>% 
-  mutate(id = row_number())
-
-# 2) Build all‐to‐all edges between successive layers
-layer_pairs <- list(
-  c("input",     "token"),
-  c("token",     "hidden"),
-  c("hidden",    "token_out"),
-  c("token_out", "output")
-)
-
-edges <- bind_rows(lapply(layer_pairs, function(lp){
-  from_ids <- nodes %>% filter(layer==lp[1]) %>% pull(id)
-  to_ids   <- nodes %>% filter(layer==lp[2]) %>% pull(id)
-  expand.grid(from=from_ids, to=to_ids)
-})) %>% 
-  mutate(
-    x    = nodes$x[from],
-    y    = nodes$y[from],
-    xend = nodes$x[to],
-    yend = nodes$y[to]
-  )
-
-# 3) Plot
-ggplot() +
-  # synapses
-  geom_segment(
-    data=edges,
-    aes(x=x, y=y, xend=xend, yend=yend),
-    color="gray60", size=0.3
-  ) +
-  # neuron circles (hidden smaller, input/output larger)
-  geom_circle(
-    data=nodes %>% filter(layer!="hidden"),
-    aes(
-      x0 = x, y0 = y,
-      r  = ifelse(layer %in% c("input","output"), 0.4, 0.2),
-      fill = layer
-    ),
-    color="gray20"
-  ) +
-  geom_circle(
-    data=nodes %>% filter(layer=="hidden"),
-    aes(x0=x, y0=y, r=0.1),
-    fill="lightgray", color="gray20"
-  ) +
-  # labels on non‐hidden nodes
-  geom_text(
-    data=nodes %>% filter(layer!="hidden"),
-    aes(x=x, y=y, label=label),
-    size=3, color="gray10", lineheight=0.9
-  ) +
-  # color‐by‐layer
-  scale_fill_manual(
-    values = c(
-      input     = "#A3D5FF",
-      token     = "#FFD5A3",
-      token_out = "#A3FFC3",
-      output    = "#A3FFC3"
-    )
-  ) +
-  coord_equal(
-    xlim = c(-0.5, 4.5), 
-    ylim = c(-2.5, 2.5), 
-    expand = FALSE
-  ) +
-  theme_void()
-
-```
 
 ## 📚 Essential LLM Terminology
 
@@ -396,7 +245,8 @@ Understanding these terms will help you make better decisions when configuring L
   - Integration with existing research tools
   - Reproducible experiments
   - No data sharing with external services
-  - Generate data on Hoffman2 - Then analyze with LLMs directy
+  - Generate data on Hoffman2 
+    - Then analyze with LLMs directy
 
 :::
 ::::
@@ -1528,7 +1378,7 @@ qa_chain = RetrievalQA.from_chain_type(
 ```
 
 ::: {.callout-tip} 
-Example file: ollama_langchain_RAG.py demonstrates a complete RAG workflow for medical data analysis 
+Example file: langchain_RAG.py demonstrates a complete RAG workflow for medical data analysis 
 ::: 
 ::: {.callout-warning} 
 IMPORTANT: This example uses synthetic data only. Never use real Protected Health Information (PHI) or Personally Identifiable Information (PII) on Hoffman2 or any shared computing environment! 
@@ -1583,7 +1433,7 @@ response = query_engine.query(
 ```
 
 ::: {.callout-tip} 
-Example file: ollama_llamaindex_RAG.py shows a complete workflow from documents to answers 
+Example file: llamaindex_RAG.py shows a complete workflow from documents to answers 
 ::: 
 ::: 
 :::: 
@@ -1663,11 +1513,22 @@ Questions? Comments?
 
 - Check out more Hoffman2 workshops at [https://idre.ucla.edu/calendar ](https://idre.ucla.edu/calendar)
 
+:::: {.columns}
+::: {.column}
+::: {.callout-tip appearance="simple"}
+### 📝 Feedback Form
+
+Please fill out our [Workshop Feedback Form](https://app.smartsheet.com/b/form/f5710344461f4d93ace0db9ea579ff04)
+:::
+:::
+::: {.column}
 ::: { style="text-align: center" }
 
 <img src="cat.jpg" width="50%" height="50%">
 
 :::
+:::
+::::
 :::
 
 
